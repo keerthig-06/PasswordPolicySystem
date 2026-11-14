@@ -67,7 +67,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/register",
+        "https://passwordpolicysystem.onrender.com/api/auth/register",
         {
           method: "POST",
           headers: {
@@ -104,7 +104,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        "https://passwordpolicysystem.onrender.com/api/auth/login",
         {
           method: "POST",
           headers: {
@@ -151,7 +151,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/unlock",
+        "https://passwordpolicysystem.onrender.com/api/auth/unlock",
         {
           method: "PUT",
           headers: {
@@ -203,7 +203,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/users",
+        "https://passwordpolicysystem.onrender.com/api/auth/users",
         {
           method: "GET",
           headers: {
