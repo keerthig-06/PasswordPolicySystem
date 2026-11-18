@@ -2,7 +2,7 @@
 import { useState } from "react";
 import "./App.css";
 
-const API = process.env.REACT_APP_API ||"https://passwordpolicysystem.onrender.com/api/auth";
+const API = process.env.REACT_APP_API ||"https://passwordpolicysystem.onrender.com";
 
 function App() {
   const [page, setPage] = useState("register");
