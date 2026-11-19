@@ -315,19 +315,23 @@ router.post("/forgot-password", async (req, res) => {
         }
 
         // Generate 6-digit OTP
+
         const otp = crypto.randomInt(100000, 1000000).toString();
 
         // Hash OTP
+
         const hashedOTP = await bcrypt.hash(otp, 10);
 
         user.resetOtpHash = hashedOTP;
 
         // OTP expires after 5 minutes
+
         user.resetOtpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
         user.resetOtpAttempts = 0;
 
         // Clear old reset token
+
         user.resetTokenHash = null;
         user.resetTokenExpires = null;
 
@@ -403,6 +407,7 @@ router.post("/verify-otp", async (req, res) => {
         }
 
         // Check OTP expiry
+
         if (
             !user.resetOtpExpires ||
             user.resetOtpExpires < new Date()
@@ -421,6 +426,7 @@ router.post("/verify-otp", async (req, res) => {
         }
 
         // Maximum 5 attempts
+
         if (user.resetOtpAttempts >= 5) {
 
             user.resetOtpHash = null;
@@ -444,19 +450,38 @@ router.post("/verify-otp", async (req, res) => {
 
             user.resetOtpAttempts += 1;
 
+            const remainingAttempts = 5 - user.resetOtpAttempts;
+
+            // Invalidate OTP immediately after 5 wrong attempts
+
+            if (user.resetOtpAttempts >= 5) {
+
+                user.resetOtpHash = null;
+                user.resetOtpExpires = null;
+                user.resetOtpAttempts = 0;
+
+                await user.save();
+
+                return res.status(429).json({
+                    message: "Too many incorrect attempts. Request a new OTP."
+                });
+
+            }
+
             await user.save();
 
             return res.status(400).json({
 
                 message: "Incorrect OTP",
 
-                remainingAttempts: 5 - user.resetOtpAttempts
+                remainingAttempts
 
             });
 
         }
 
         // Generate reset token
+
         const resetToken = crypto.randomBytes(32).toString("hex");
 
         const hashedToken = crypto
@@ -467,9 +492,11 @@ router.post("/verify-otp", async (req, res) => {
         user.resetTokenHash = hashedToken;
 
         // Reset token expires after 15 minutes
+
         user.resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
 
         // Clear OTP after successful verification
+
         user.resetOtpHash = null;
         user.resetOtpExpires = null;
         user.resetOtpAttempts = 0;
@@ -517,6 +544,7 @@ router.post("/reset-password", async (req, res) => {
         }
 
         // DFA validation
+
         if (!validatePasswordDFA(newPassword)) {
 
             return res.status(400).json({
@@ -544,6 +572,7 @@ router.post("/reset-password", async (req, res) => {
         }
 
         // Check reset token expiry
+
         if (
             !user.resetTokenExpires ||
             user.resetTokenExpires < new Date()
@@ -561,6 +590,7 @@ router.post("/reset-password", async (req, res) => {
         }
 
         // Hash received token
+
         const hashedToken = crypto
             .createHash("sha256")
             .update(resetToken)
@@ -581,11 +611,13 @@ router.post("/reset-password", async (req, res) => {
         }
 
         // Hash new password
+
         user.password = await bcrypt.hash(newPassword, 10);
 
         user.failedAttempts = 0;
 
         // Do not automatically unlock locked accounts
+
         if (!user.accountLocked) {
             user.accountStatus = "Registered";
         }
@@ -595,6 +627,7 @@ router.post("/reset-password", async (req, res) => {
         });
 
         // Clear reset token after use
+
         user.resetTokenHash = null;
         user.resetTokenExpires = null;
 
