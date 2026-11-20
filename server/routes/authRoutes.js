@@ -288,88 +288,58 @@ router.post("/login", async (req, res) => {
 });
 
 
-// FORGOT PASSWORD - SEND OTP
-
 router.post("/forgot-password", async (req, res) => {
-
     try {
-
         const { email } = req.body;
 
         if (!email) {
-
             return res.status(400).json({
                 message: "Email is required"
             });
-
         }
 
         const user = await User.findOne({ email });
 
         if (!user) {
-
-            return res.status(200).json({
-                message: "If the email is registered, an OTP will be sent."
+            return res.status(404).json({
+                message: "Email is not registered."
             });
-
         }
 
         // Generate 6-digit OTP
-
         const otp = crypto.randomInt(100000, 1000000).toString();
 
         // Hash OTP
-
         const hashedOTP = await bcrypt.hash(otp, 10);
 
         user.resetOtpHash = hashedOTP;
 
         // OTP expires after 5 minutes
-
         user.resetOtpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
         user.resetOtpAttempts = 0;
 
         // Clear old reset token
-
         user.resetTokenHash = null;
         user.resetTokenExpires = null;
 
         await user.save();
 
-        try {
-
-            await sendOTPEmail(email, otp);
-
-        } catch (emailError) {
-
-            user.resetOtpHash = null;
-            user.resetOtpExpires = null;
-            user.resetOtpAttempts = 0;
-
-            await user.save();
-
-            throw emailError;
-
-        }
-
+        // Demo OTP response (No email sending)
         res.status(200).json({
-
-            message: "If the email is registered, an OTP will be sent."
-
+            message: "Demo OTP generated successfully!",
+            demoOTP: otp
         });
 
     } catch (error) {
-
-        console.log("OTP Email Error:", error.message);
+        console.log("OTP Generation Error:", error.message);
 
         res.status(500).json({
-            message: "Unable to send OTP. Please try again."
+            message: "Unable to generate OTP. Please try again."
         });
-
     }
-
 });
+
 
 
 // VERIFY OTP
