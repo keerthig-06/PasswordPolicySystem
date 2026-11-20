@@ -2,7 +2,7 @@
 import { useState } from "react";
 import "./App.css";
 
-const API = process.env.REACT_APP_API ||"https://passwordpolicysystem.onrender.com";
+const API = "https://passwordpolicysystem.onrender.com";
 
 function App() {
   const [page, setPage] = useState("register");
@@ -18,6 +18,14 @@ function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginMessage, setLoginMessage] = useState("");
+
+  // Forgot password states
+  const [resetEmail, setResetEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newConfirmPassword, setNewConfirmPassword] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
 
   // User dashboard
   const [userData, setUserData] = useState(null);
@@ -53,6 +61,30 @@ function App() {
     }
   ];
 
+  // Password policy for new password
+  const resetRules = [
+    {
+      text: "Minimum 8 characters",
+      valid: newPassword.length >= 8
+    },
+    {
+      text: "One uppercase letter",
+      valid: /[A-Z]/.test(newPassword)
+    },
+    {
+      text: "One lowercase letter",
+      valid: /[a-z]/.test(newPassword)
+    },
+    {
+      text: "One number",
+      valid: /[0-9]/.test(newPassword)
+    },
+    {
+      text: "One special character",
+      valid: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+    }
+  ];
+
   // USER REGISTRATION
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -68,21 +100,18 @@ function App() {
     }
 
     try {
-      const response = await fetch(
-        "https://passwordpolicysystem.onrender.com/api/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            username,
-            email,
-            password,
-            confirmPassword
-          })
-        }
-      );
+      const response = await fetch(`${API}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          confirmPassword
+        })
+      });
 
       const data = await response.json();
 
@@ -105,19 +134,16 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        "https://passwordpolicysystem.onrender.com/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            email: loginEmail,
-            password: loginPassword
-          })
-        }
-      );
+      const response = await fetch(`${API}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword
+        })
+      });
 
       const data = await response.json();
 
@@ -138,6 +164,130 @@ function App() {
     }
   };
 
+  // FORGOT PASSWORD - SEND OTP
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+
+    setForgotMessage("");
+
+    try {
+      const response = await fetch(`${API}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: resetEmail
+        })
+      });
+
+      const data = await response.json();
+
+      setForgotMessage(data.message);
+
+      if (response.ok) {
+        setPage("verify-otp");
+      }
+    } catch (error) {
+      setForgotMessage("Backend connection failed!");
+    }
+  };
+
+  // VERIFY OTP
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+
+    setForgotMessage("");
+
+    try {
+      const response = await fetch(`${API}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: resetEmail,
+          otp
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResetToken(data.resetToken);
+        setForgotMessage(data.message);
+        setOtp("");
+        setPage("reset-password");
+      } else {
+        setForgotMessage(data.message);
+      }
+    } catch (error) {
+      setForgotMessage("Backend connection failed!");
+    }
+  };
+
+  // RESET PASSWORD
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+
+    if (!resetRules.every((rule) => rule.valid)) {
+      setForgotMessage("Password does not satisfy the policy!");
+      return;
+    }
+
+    if (newPassword !== newConfirmPassword) {
+      setForgotMessage("Passwords do not match!");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/api/auth/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: resetEmail,
+          resetToken,
+          newPassword,
+          confirmPassword: newConfirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setForgotMessage(data.message);
+        setLoginEmail(resetEmail);
+        setLoginPassword("");
+        setNewPassword("");
+        setNewConfirmPassword("");
+        setResetToken("");
+        setOtp("");
+
+        setTimeout(() => {
+          setForgotMessage("");
+          setPage("login");
+        }, 2000);
+      } else {
+        setForgotMessage(data.message);
+      }
+    } catch (error) {
+      setForgotMessage("Backend connection failed!");
+    }
+  };
+
+  // OPEN FORGOT PASSWORD PAGE
+  const openForgotPassword = () => {
+    setResetEmail(loginEmail);
+    setForgotMessage("");
+    setOtp("");
+    setResetToken("");
+    setNewPassword("");
+    setNewConfirmPassword("");
+    setPage("forgot-password");
+  };
+
   // USER LOGOUT
   const handleLogout = () => {
     setUserData(null);
@@ -152,19 +302,16 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        "https://passwordpolicysystem.onrender.com/api/auth/unlock",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "admin-key": adminKey
-          },
-          body: JSON.stringify({
-            email: unlockEmail
-          })
-        }
-      );
+      const response = await fetch(`${API}/api/auth/unlock`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "admin-key": adminKey
+        },
+        body: JSON.stringify({
+          email: unlockEmail
+        })
+      });
 
       const data = await response.json();
 
@@ -204,15 +351,12 @@ function App() {
     }
 
     try {
-      const response = await fetch(
-        "https://passwordpolicysystem.onrender.com/api/auth/users",
-        {
-          method: "GET",
-          headers: {
-            "admin-key": adminKey
-          }
+      const response = await fetch(`${API}/api/auth/users`, {
+        method: "GET",
+        headers: {
+          "admin-key": adminKey
         }
-      );
+      });
 
       const data = await response.json();
 
@@ -301,9 +445,7 @@ function App() {
               type="password"
               placeholder="Confirm Password"
               value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(e.target.value)
-              }
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
 
@@ -349,6 +491,142 @@ function App() {
           </form>
 
           <p>{loginMessage}</p>
+
+          <p>
+            <button
+              type="button"
+              onClick={openForgotPassword}
+              className="forgot-link"
+            >
+              Forgot Password?
+            </button>
+          </p>
+
+        </div>
+      )}
+
+      {/* FORGOT PASSWORD PAGE */}
+      {page === "forgot-password" && (
+        <div className="form-box">
+
+          <h2>Forgot Password</h2>
+
+          <p>Enter your registered email address to receive an OTP.</p>
+
+          <form onSubmit={handleForgotPassword}>
+
+            <input
+              type="email"
+              placeholder="Registered Email"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              required
+            />
+
+            <button type="submit">
+              Send OTP
+            </button>
+
+          </form>
+
+          <p>{forgotMessage}</p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForgotMessage("");
+              setPage("login");
+            }}
+          >
+            Back to Login
+          </button>
+
+        </div>
+      )}
+
+      {/* OTP VERIFICATION PAGE */}
+      {page === "verify-otp" && (
+        <div className="form-box">
+
+          <h2>Verify OTP</h2>
+
+          <p>Enter the 6-digit OTP sent to your registered email.</p>
+
+          <form onSubmit={handleVerifyOTP}>
+
+            <input
+              type="text"
+              placeholder="Enter 6-digit OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              maxLength="6"
+              pattern="[0-9]{6}"
+              required
+            />
+
+            <button type="submit">
+              Verify OTP
+            </button>
+
+          </form>
+
+          <p>{forgotMessage}</p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForgotMessage("");
+              setPage("forgot-password");
+            }}
+          >
+            Back
+          </button>
+
+        </div>
+      )}
+
+      {/* RESET PASSWORD PAGE */}
+      {page === "reset-password" && (
+        <div className="form-box">
+
+          <h2>Reset Password</h2>
+
+          <form onSubmit={handleResetPassword}>
+
+            <input
+              type="password"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+
+            <h3>Password Policy</h3>
+
+            {resetRules.map((rule, index) => (
+              <p
+                key={index}
+                className={rule.valid ? "valid-rule" : "invalid-rule"}
+              >
+                {rule.valid ? "✓" : "✗"} {rule.text}
+              </p>
+            ))}
+
+            <input
+              type="password"
+              placeholder="Confirm New Password"
+              value={newConfirmPassword}
+              onChange={(e) => setNewConfirmPassword(e.target.value)}
+              required
+            />
+
+            <button type="submit">
+              Reset Password
+            </button>
+
+          </form>
+
+          <p>{forgotMessage}</p>
 
         </div>
       )}
