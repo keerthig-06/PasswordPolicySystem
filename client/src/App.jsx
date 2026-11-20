@@ -522,11 +522,7 @@ function App() {
               onChange={(e) => setResetEmail(e.target.value)}
               required
             />
-            {forgotMessage && (
-  <p style={{ color: "red", marginTop: "10px" }}>
-    {forgotMessage}
-  </p>
-)}
+            
 
             <button type="submit">
               Send OTP
