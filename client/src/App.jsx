@@ -165,7 +165,8 @@ function App() {
   };
 
   // FORGOT PASSWORD - SEND OTP
-  const handleForgotPassword = async (e) => {
+  
+const handleForgotPassword = async (e) => {
     e.preventDefault();
 
     setForgotMessage("");
@@ -183,15 +184,21 @@ function App() {
 
       const data = await response.json();
 
-      setForgotMessage(data.message);
-
       if (response.ok) {
+        setForgotMessage(
+          `${data.message} OTP: ${data.otp}`
+        );
+
         setPage("verify-otp");
+      } else {
+        setForgotMessage(data.message);
       }
+
     } catch (error) {
       setForgotMessage("Backend connection failed!");
     }
-  };
+};
+
 
   // VERIFY OTP
   const handleVerifyOTP = async (e) => {
