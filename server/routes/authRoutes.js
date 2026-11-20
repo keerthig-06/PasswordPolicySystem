@@ -328,7 +328,7 @@ router.post("/forgot-password", async (req, res) => {
         // OTP response (No email sending)
         res.status(200).json({
             message: "OTP generated successfully!",
-            opt: otp
+            otp: otp
         });
 
     } catch (error) {
